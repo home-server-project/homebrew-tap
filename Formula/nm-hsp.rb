@@ -1,8 +1,9 @@
 class NmHsp < Formula
   desc "Friendly terminal interface for NetworkManager"
   homepage "https://github.com/home-server-project/nm-hsp"
-  url "https://github.com/home-server-project/nm-hsp/releases/download/v0.2.0/nm-hsp_0.2.0_linux.tar.gz"
-  sha256 "57c08b07deb101b6caf9d4fcb54d2744e454af17ebdc3d0036b8ea65644882fb"
+  url "https://raw.githubusercontent.com/home-server-project/homebrew-tap/testing-binaries/nm-hsp_testing-680cb1a_linux.tar.gz"
+  version "0.0.0.1"
+  sha256 "280b00c452cbc5fd8d3948bd397cf75219ccb448479431533486576e82928231"
   license "Apache-2.0"
 
   depends_on :linux
