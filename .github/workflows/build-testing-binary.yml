@@ -42,9 +42,11 @@ jobs:
           version="testing-${short_sha}"
           formula_version="0.0.0.$(date -u +%Y%m%d%H%M%S)"
 
-          printf 'sha=%s\n' "${sha}" >> "${GITHUB_OUTPUT}"
-          printf 'version=%s\n' "${version}" >> "${GITHUB_OUTPUT}"
-          printf 'formula_version=%s\n' "${formula_version}" >> "${GITHUB_OUTPUT}"
+          {
+            printf 'sha=%s\n' "${sha}"
+            printf 'version=%s\n' "${version}"
+            printf 'formula_version=%s\n' "${formula_version}"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Test nm-hsp source
         working-directory: nm-hsp
