@@ -2,8 +2,8 @@ class NmHsp < Formula
   desc "Friendly terminal interface for NetworkManager"
   homepage "https://github.com/home-server-project/nm-hsp"
   url "https://github.com/home-server-project/nm-hsp.git",
-      tag:      "v0.1.0",
-      revision: "e41f9d5c4b7abe72429ddde91af1f07c13342144"
+      tag:      "v0.2.0",
+      revision: "6431fc7376021edd3278016b1374f1a98dd225ca"
   license "Apache-2.0"
 
   depends_on "go" => :build
