@@ -1,0 +1,160 @@
+name: Build nm-hsp testing binary
+
+on:
+  push:
+    branches:
+      - testing
+    paths:
+      - ".github/workflows/build-testing-binary.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nm-hsp-testing-binary
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and publish Brew testing binary
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout nm-hsp testing
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: home-server-project/nm-hsp
+          ref: testing
+          path: nm-hsp
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6
+        with:
+          go-version: "1.25.x"
+          check-latest: true
+          cache: false
+
+      - name: Resolve testing version
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(git -C nm-hsp rev-parse HEAD)"
+          short_sha="${sha:0:7}"
+          version="testing-${short_sha}"
+          formula_version="0.0.0.${GITHUB_RUN_NUMBER}"
+
+          printf 'sha=%s\n' "${sha}" >> "${GITHUB_OUTPUT}"
+          printf 'version=%s\n' "${version}" >> "${GITHUB_OUTPUT}"
+          printf 'formula_version=%s\n' "${formula_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Test nm-hsp source
+        working-directory: nm-hsp
+        run: go test ./...
+
+      - name: Build precompiled Linux bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.build.outputs.version }}"
+          mkdir -p dist work/amd64 work/arm64 bundle/amd64 bundle/arm64
+          ldflags="-s -w -X github.com/home-server-project/nm-hsp/internal/buildinfo.Version=${version}"
+
+          (
+            cd nm-hsp
+            CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+              go build -trimpath -ldflags="${ldflags}" -o ../work/amd64/nm-hsp ./cmd/nm-hsp
+            CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
+              go build -trimpath -ldflags="${ldflags}" -o ../work/arm64/nm-hsp ./cmd/nm-hsp
+          )
+
+          install -Dm0755 work/amd64/nm-hsp bundle/amd64/nm-hsp
+          install -Dm0755 work/arm64/nm-hsp bundle/arm64/nm-hsp
+          tar -C bundle -czf "dist/nm-hsp_${version}_linux.tar.gz" amd64 arm64
+          sha256sum "dist/nm-hsp_${version}_linux.tar.gz" | awk '{print $1}' > dist/SHA256
+
+      - name: Checkout testing-binaries branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: testing-binaries
+          path: publish
+          persist-credentials: true
+
+      - name: Publish current testing binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.build.outputs.version }}"
+          archive="nm-hsp_${version}_linux.tar.gz"
+
+          cd publish
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --orphan publish-root
+          git rm -rf . >/dev/null 2>&1 || true
+          cp "../dist/${archive}" .
+          printf 'nm-hsp testing binary built from %s\n' "${{ steps.build.outputs.sha }}" > README.txt
+          git add "${archive}" README.txt
+          git commit -m "Publish ${version}"
+          git push --force origin HEAD:testing-binaries
+
+      - name: Checkout tap testing branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: testing
+          path: tap-testing
+          persist-credentials: true
+
+      - name: Update testing formula
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.build.outputs.version }}"
+          formula_version="${{ steps.build.outputs.formula_version }}"
+          archive="nm-hsp_${version}_linux.tar.gz"
+          sha256="$(cat dist/SHA256)"
+          url="https://raw.githubusercontent.com/home-server-project/homebrew-tap/testing-binaries/${archive}"
+          formula="tap-testing/Formula/nm-hsp.rb"
+
+          sed -i -E "s#^  url \".*\"#  url \"${url}\"#" "${formula}"
+          sed -i -E "s#^  sha256 \".*\"#  sha256 \"${sha256}\"#" "${formula}"
+
+          if grep -q '^  version ' "${formula}"; then
+            sed -i -E "s#^  version \".*\"#  version \"${formula_version}\"#" "${formula}"
+          else
+            sed -i "/^  url /a\\  version \"${formula_version}\"" "${formula}"
+          fi
+
+          cd tap-testing
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/nm-hsp.rb
+          if git diff --cached --quiet; then
+            echo "Testing formula already points at this build."
+          else
+            git commit -m "Use nm-hsp ${version} testing binary"
+            git push origin HEAD:testing
+          fi
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@1e34f2e2acaa766b7efacb8c26352e6abbb023f9 # 2026.09.13.1
+        with:
+          core: true
+          cask: false
+
+      - name: Validate and install testing formula
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew tap home-server-project/tap
+          tap_repo="$(brew --repo home-server-project/tap)"
+          git -C "${tap_repo}" fetch origin testing
+          git -C "${tap_repo}" switch -C testing origin/testing
+
+          brew style home-server-project/tap
+          brew audit --strict --formula home-server-project/tap/nm-hsp
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install home-server-project/tap/nm-hsp
+          brew test home-server-project/tap/nm-hsp
+          test -x "$(brew --prefix)/bin/nm-hsp"
