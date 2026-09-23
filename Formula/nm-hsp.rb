@@ -1,23 +1,18 @@
 class NmHsp < Formula
   desc "Friendly terminal interface for NetworkManager"
   homepage "https://github.com/home-server-project/nm-hsp"
-  version "0.2.0"
+  url "https://github.com/home-server-project/nm-hsp/releases/download/v0.2.0/nm-hsp_0.2.0_linux.tar.gz"
+  sha256 "57c08b07deb101b6caf9d4fcb54d2744e454af17ebdc3d0036b8ea65644882fb"
   license "Apache-2.0"
-
-  on_intel do
-    url "https://github.com/home-server-project/nm-hsp/releases/download/v0.2.0/nm-hsp_0.2.0_linux_amd64.tar.gz"
-    sha256 "4342daba973e40a2dc113e2aa703a5e4f4bd7fd5ee1c178226066cbe915cf612"
-  end
-
-  on_arm do
-    url "https://github.com/home-server-project/nm-hsp/releases/download/v0.2.0/nm-hsp_0.2.0_linux_arm64.tar.gz"
-    sha256 "e2fccba380d5d3854d95fe4955fda32fb6c0ef88486798ac9026cf2cc9b3335d"
-  end
 
   depends_on :linux
 
   def install
-    bin.install "nm-hsp"
+    if Hardware::CPU.arm?
+      bin.install "arm64/nm-hsp" => "nm-hsp"
+    else
+      bin.install "amd64/nm-hsp" => "nm-hsp"
+    end
   end
 
   def caveats
