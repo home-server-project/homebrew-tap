@@ -39,10 +39,10 @@ jobs:
           brew style home-server-project/tap
           brew audit --strict --formula home-server-project/tap/nm-hsp
 
-      - name: Build nm-hsp from source
+      - name: Install prebuilt nm-hsp
         run: |
           set -euo pipefail
-          brew install --build-from-source home-server-project/tap/nm-hsp
+          brew install home-server-project/tap/nm-hsp
 
       - name: Test installed formula
         run: |
