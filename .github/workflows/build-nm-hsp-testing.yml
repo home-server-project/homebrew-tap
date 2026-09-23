@@ -1,0 +1,11 @@
+name: Build nm-hsp testing binary
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: home-server-project/homebrew-tap/.github/workflows/build-testing-binary.yml@testing
