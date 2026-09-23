@@ -40,7 +40,7 @@ jobs:
           sha="$(git -C nm-hsp rev-parse HEAD)"
           short_sha="${sha:0:7}"
           version="testing-${short_sha}"
-          formula_version="0.0.0.${GITHUB_RUN_NUMBER}"
+          formula_version="0.0.0.$(date -u +%Y%m%d%H%M%S)"
 
           printf 'sha=%s\n' "${sha}" >> "${GITHUB_OUTPUT}"
           printf 'version=%s\n' "${version}" >> "${GITHUB_OUTPUT}"
@@ -65,6 +65,9 @@ jobs:
             CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
               go build -trimpath -ldflags="${ldflags}" -o ../work/arm64/nm-hsp ./cmd/nm-hsp
           )
+
+          grep -aFq "${version}" work/amd64/nm-hsp
+          grep -aFq "${version}" work/arm64/nm-hsp
 
           install -Dm0755 work/amd64/nm-hsp bundle/amd64/nm-hsp
           install -Dm0755 work/arm64/nm-hsp bundle/arm64/nm-hsp
