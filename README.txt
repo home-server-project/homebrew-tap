@@ -1,0 +1,1 @@
+nm-hsp testing binary built from 680cb1aabe5ac7f3ddfeb2bce99c728eac159956
