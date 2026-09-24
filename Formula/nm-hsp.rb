@@ -2,7 +2,6 @@ class NmHsp < Formula
   desc "Friendly terminal interface for NetworkManager"
   homepage "https://github.com/home-server-project/nm-hsp"
   url "https://github.com/home-server-project/nm-hsp/releases/download/v0.3.0/nm-hsp_0.3.0_linux.tar.gz"
-  version "0.3.0"
   sha256 "b6a0c1abb97f7902f32cbe1c7023772a465aa93a4b09b4f3ae13be5dc884bd92"
   license "Apache-2.0"
 
