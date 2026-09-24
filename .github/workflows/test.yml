@@ -1,0 +1,51 @@
+name: Homebrew tap CI
+
+on:
+  push:
+    branches:
+      - testing
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: homebrew-tap-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Linux formula validation
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout tap
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@1e34f2e2acaa766b7efacb8c26352e6abbb023f9 # 2026.09.13.1
+        with:
+          core: true
+          cask: false
+
+      - name: Validate tap and formula
+        run: |
+          set -euo pipefail
+          brew style home-server-project/tap
+          brew audit --strict --formula home-server-project/tap/nm-hsp
+
+      - name: Install prebuilt nm-hsp
+        run: |
+          set -euo pipefail
+          brew install home-server-project/tap/nm-hsp
+
+      - name: Test installed formula
+        run: |
+          set -euo pipefail
+          brew test home-server-project/tap/nm-hsp
+          test -x "$(brew --prefix)/bin/nm-hsp"
